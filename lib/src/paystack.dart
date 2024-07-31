@@ -76,6 +76,7 @@ class FlutterPaystackPlus {
       metadata.addEntries(cancelMetaData.entries);
     }
 
+
     return await makePlatformSpecificPayment.makePayment(
       customerEmail: customerEmail,
       context: context,
