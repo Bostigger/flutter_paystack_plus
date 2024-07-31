@@ -1,7 +1,8 @@
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_paystack_plus/src/stub.dart'
 if (dart.library.js) 'package:flutter_paystack_plus/src/paystack_interop.dart'
 if (dart.library.io) 'package:flutter_paystack_plus/src/for_non_web.dart';
-import 'package:flutter/material.dart';
 
 abstract class MakePlatformSpecificPayment {
   Future<void> makePayment({
@@ -18,6 +19,8 @@ abstract class MakePlatformSpecificPayment {
     required void Function() onClosed,
     required void Function() onSuccess,
     List<String>? channels,
-  });
+  }) async {
+    //
+  }
   factory MakePlatformSpecificPayment() => makePlatformSpecificPayment();
 }
