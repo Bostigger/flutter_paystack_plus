@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_paystack_plus/src/abstract_class.dart';
 
-class UnsupportedPlatformPayment implements MakePlatformSpecificPayment {
+class PaystackStub implements MakePlatformSpecificPayment {
   @override
   Future<void> makePayment({
     required String customerEmail,
@@ -18,9 +18,8 @@ class UnsupportedPlatformPayment implements MakePlatformSpecificPayment {
     required void Function() onSuccess,
     List<String>? channels,
   }) async {
-    throw UnsupportedError('Unsupported platform.');
+    throw UnsupportedError('Cannot make payment on this platform');
   }
 }
 
-MakePlatformSpecificPayment makePlatformSpecificPayment() =>
-    UnsupportedPlatformPayment();
+MakePlatformSpecificPayment makePlatformSpecificPayment() => PaystackStub();

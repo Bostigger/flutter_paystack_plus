@@ -1,10 +1,14 @@
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_paystack_plus/src/paystack_interop.dart';
 import 'package:flutter_paystack_plus/src/stub.dart'
 if (dart.library.js) 'package:flutter_paystack_plus/src/paystack_interop.dart'
 if (dart.library.io) 'package:flutter_paystack_plus/src/for_non_web.dart';
-import 'package:flutter/material.dart';
+
+import 'for_non_web.dart';
 
 abstract class MakePlatformSpecificPayment {
-  makePayment({
+  Future<void> makePayment({
     required String customerEmail,
     required String amount,
     required String reference,
@@ -17,9 +21,17 @@ abstract class MakePlatformSpecificPayment {
     required BuildContext? context,
     required void Function() onClosed,
     required void Function() onSuccess,
-    List<String>? channels
+    List<String>? channels,
   }) async {
-    //
+    // TODO: implement makePayment
+    throw UnimplementedError();
   }
-  factory MakePlatformSpecificPayment() => makePlatformSpecificPayment();
+
+  factory MakePlatformSpecificPayment() {
+    if (kIsWeb) {
+      return PayForWeb();
+    } else {
+      return PayForMobile();
+    }
+  }
 }
