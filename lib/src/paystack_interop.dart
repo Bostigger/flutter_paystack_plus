@@ -1,8 +1,8 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_paystack_plus/src/abstract_class.dart';
 import 'package:js/js.dart';
 // ignore: avoid_web_libraries_in_flutter
 import 'dart:js' as js;
-import 'package:flutter/material.dart';
-import 'package:flutter_paystack_plus/src/abstract_class.dart';
 
 @JS()
 external paystackPopUp(

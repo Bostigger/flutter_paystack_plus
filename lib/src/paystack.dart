@@ -1,6 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_paystack_plus/src/abstract_class.dart';
+import 'package:flutter_paystack_plus/src/stub.dart'
+if (dart.library.js) 'package:flutter_paystack_plus/src/paystack_interop.dart'
+if (dart.library.io) 'package:flutter_paystack_plus/src/for_non_web.dart';
 
 class FlutterPaystackPlus {
   static Future<void> openPaystackPopup({
@@ -61,7 +64,7 @@ class FlutterPaystackPlus {
       } else if (secretKey == null) {
         // because Secret key is needed for mobile
         throw Exception('Please provide your Paystack secret key');
-      } else if (secretKey.isEmpty) {
+      } else if (secretKey!.isEmpty) {
         throw Exception('Please provide a valid Paystack secret key');
       }
     }
