@@ -7,60 +7,62 @@ class FlutterPaystackPlus {
     /// Email of the customer
     required String customerEmail,
 
-    /// [amount] is should be multiplied by 100 [eg amount * 100]
+    /// [amount] should be multiplied by 100 [eg amount * 100]
     required String amount,
 
     /// Alpha numeric and/or number ID to a transaction
     required String reference,
 
     /// URL to redirect to after payment is successful, this helps close the session.
-    /// This is setup in the Dashboard of paystack and the same URL setup is then provided here by you again.
+    /// This is set up in the Dashboard of Paystack and the same URL setup is then provided here by you again.
     /// [callBackUrl] is required for mobile only
     String? callBackUrl,
 
     /// [publicKey] is required for web only
     String? publicKey,
 
-    /// [secretKey] is required for android and iOS only
+    /// [secretKey] is required for Android and iOS only
     String? secretKey,
 
     /// Currency of the transaction
     String? currency,
 
-    /// [context] is required for android and iOS only
+    /// [context] is required for Android and iOS only
     BuildContext? context,
 
-    /// Incase your payment was setup with a subscription pattern/plan
+    /// In case your payment was set up with a subscription pattern/plan
     String? plan,
 
-    ///Extra data for developer purposes.
+    /// Extra data for developer purposes.
     Map? metadata,
 
     /// [onClosed] is called when the user cancels a transaction or when there is a failed transaction
     required void Function() onClosed,
 
-    /// [onSuccess] is called on successfull transactions
+    /// [onSuccess] is called on successful transactions
     required void Function() onSuccess,
+
+    /// Channels to use for the transaction
+    List<String>? channels,
   }) async {
-    final MakePlatformSpecificPayment makePlatformSpecificPayment =
-        MakePlatformSpecificPayment();
+    final MakePlatformSpecificPayment makePlatformSpecificPayment = MakePlatformSpecificPayment();
     if (kIsWeb) {
-      //because public key is needed for web
+      // because public key is needed for web
       if (publicKey == null) {
-        throw Exception('Please provide your paystack public key');
+        throw Exception('Please provide your Paystack public key');
       } else if (publicKey.isEmpty) {
-        throw Exception('Please provide a valid paystack public key');
+        throw Exception('Please provide a valid Paystack public key');
       }
     } else {
-      //meaning its running on mobile
+      // meaning it's running on mobile
       if (context == null) {
-        //because context is needed for mobile
+        // because context is needed for mobile
         throw Exception('Pass down your BuildContext');
       } else if (secretKey == null) {
-        //because Secret key is needed for mobile
-        throw Exception('Please provide your paystack secret key');
+        // because Secret key is needed for mobile
+        throw Exception('Please provide your Paystack secret key');
       } else if (secretKey.isEmpty) {
-        throw Exception('Please provide a valid paystack secret key');
+        throw Exception('Please provide a valid Paystack secret key');
       }
     }
 
@@ -84,6 +86,7 @@ class FlutterPaystackPlus {
       onClosed: onClosed,
       onSuccess: onSuccess,
       callBackUrl: callBackUrl,
+      channels: channels,
     );
   }
 }

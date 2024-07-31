@@ -1,7 +1,4 @@
-// ignore_for_file: prefer_typing_uninitialized_variables
-
 import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:webview_flutter/webview_flutter.dart';
@@ -14,8 +11,8 @@ class PaystackPayNow extends StatefulWidget {
   final String email;
   final String amount;
   final String? plan;
-  final metadata;
-  final paymentChannel;
+  final dynamic metadata;
+  final List<String>? paymentChannel;
   final void Function() transactionCompleted;
   final void Function() transactionNotCompleted;
 
@@ -39,20 +36,29 @@ class PaystackPayNow extends StatefulWidget {
 }
 
 class _PaystackPayNowState extends State<PaystackPayNow> {
-  /// Makes HTTP Request to Paystack for access to make payment.
-  Future<PaystackRequestResponse> _makePaymentRequest() async {
-    http.Response? response;
+  late WebViewController _webViewController;
+  bool _loading = true;
+  String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _makePaymentRequest();
+  }
+
+  Future<void> _makePaymentRequest() async {
+    setState(() {
+      _loading = true;
+      _errorMessage = null;
+    });
+
     try {
-      /// Sending Data to paystack.
-      response = await http.post(
-        /// Url to send data to
+      final response = await http.post(
         Uri.parse('https://api.paystack.co/transaction/initialize'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer ${widget.secretKey}',
         },
-
-        /// Data to send to the URL.
         body: jsonEncode({
           "email": widget.email,
           "amount": widget.amount,
@@ -61,134 +67,95 @@ class _PaystackPayNowState extends State<PaystackPayNow> {
           "plan": widget.plan,
           "metadata": widget.metadata,
           "callback_url": widget.callbackUrl,
-          "channels": widget.paymentChannel
+          "channels": widget.paymentChannel,
         }),
       );
-    } on Exception catch (e) {
-      /// In the event of an exception, take the user back and show a SnackBar error.
-      if (context.mounted) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).hideCurrentSnackBar();
-        var snackBar =
-            SnackBar(content: Text("Fatal error occurred, ${e.toString()}"));
-        ScaffoldMessenger.of(context).showSnackBar(snackBar);
-      }
-    }
 
-    if (response!.statusCode == 200) {
-      return PaystackRequestResponse.fromJson(jsonDecode(response.body));
-    } else {
-      throw Exception(
-          "Response Code: ${response.statusCode}, Response Body${response.body}");
+      if (response.statusCode == 200) {
+        final data = PaystackRequestResponse.fromJson(jsonDecode(response.body));
+        _initializeWebView(data.authUrl, data.reference);
+      } else {
+        _handleError("Error: ${response.statusCode}, ${response.body}");
+      }
+    } catch (e) {
+      _handleError(e.toString());
     }
   }
 
-  /// Checks for transaction status of current transaction before view closes.
-  Future _checkTransactionStatus(String ref) async {
-    http.Response? response;
+  Future<void> _checkTransactionStatus(String ref) async {
     try {
-      /// Getting data, passing [ref] as a value to the URL that is being requested.
-      response = await http.get(
+      final response = await http.get(
         Uri.parse('https://api.paystack.co/transaction/verify/$ref'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer ${widget.secretKey}',
         },
       );
-    } on Exception catch (_) {
-      /// In the event of an exception, take the user back and show a SnackBar error.
-      if (context.mounted) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).hideCurrentSnackBar();
-        var snackBar = const SnackBar(
-            content: Text("Fatal error occurred, Please check your internet"));
-        ScaffoldMessenger.of(context).showSnackBar(snackBar);
-      }
-    }
-    if (response!.statusCode == 200) {
-      var decodedRespBody = jsonDecode(response.body);
-      if (decodedRespBody["data"]["gateway_response"] == "Approved" ||
-          decodedRespBody["data"]["gateway_response"] == "Successful") {
-        widget.transactionCompleted();
+
+      if (response.statusCode == 200) {
+        final decodedRespBody = jsonDecode(response.body);
+        if (decodedRespBody["data"]["gateway_response"] == "Approved" ||
+            decodedRespBody["data"]["gateway_response"] == "Successful") {
+          widget.transactionCompleted();
+        } else {
+          widget.transactionNotCompleted();
+        }
       } else {
+        _handleError("Verification failed: ${response.body}");
         widget.transactionNotCompleted();
       }
-    } else {
-      /// Anything else means there is an issue
+    } catch (e) {
+      _handleError(e.toString());
       widget.transactionNotCompleted();
-      throw Exception(
-          "Response Code: ${response.statusCode}, Response Body${response.body}");
     }
+  }
+
+  void _initializeWebView(String url, String reference) {
+    setState(() {
+      _loading = false;
+    });
+
+    _webViewController = WebViewController()
+      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setUserAgent("Flutter;Webview")
+      ..setNavigationDelegate(
+        NavigationDelegate(
+          onNavigationRequest: (request) async {
+            if (request.url.contains('cancelurl.com') ||
+                request.url.contains('paystack.co/close') ||
+                request.url.contains(widget.callbackUrl)) {
+              await _checkTransactionStatus(reference).then((_) {
+                Navigator.of(context).pop();
+              });
+            }
+            return NavigationDecision.navigate;
+          },
+        ),
+      )
+      ..loadRequest(Uri.parse(url));
+  }
+
+  void _handleError(String error) {
+    setState(() {
+      _loading = false;
+      _errorMessage = error;
+    });
+
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Error: $error")),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
-        child: FutureBuilder<PaystackRequestResponse>(
-          future: _makePaymentRequest(),
-          builder: (context, AsyncSnapshot<PaystackRequestResponse> snapshot) {
-            /// Show screen if snapshot has data and status is true.
-            if (snapshot.hasData && snapshot.data!.status == true) {
-              final controller = WebViewController()
-                ..setJavaScriptMode(JavaScriptMode.unrestricted)
-                ..setUserAgent("Flutter;Webview")
-                ..setNavigationDelegate(
-                  NavigationDelegate(
-                    onNavigationRequest: (request) async {
-                      if (request.url.contains('cancelurl.com')) {
-                        await _checkTransactionStatus(snapshot.data!.reference)
-                            .then((value) {
-                          Navigator.of(context).pop();
-                        });
-                      }
-                      if (request.url.contains('paystack.co/close')) {
-                        await _checkTransactionStatus(snapshot.data!.reference)
-                            .then((value) {
-                          Navigator.of(context).pop();
-                        });
-                      }
-                      if (request.url.contains(widget.callbackUrl)) {
-                        await _checkTransactionStatus(snapshot.data!.reference)
-                            .then((value) {
-                          Navigator.of(context).pop();
-                        });
-                      }
-                      return NavigationDecision.navigate;
-                    },
-                  ),
-                )
-                ..loadRequest(Uri.parse(snapshot.data!.authUrl));
-              return WebViewWidget(
-                controller: controller,
-                // initialUrl: snapshot.data!.authUrl,
-                // javascriptMode: JavascriptMode.unrestricted,
-                // navigationDelegate: (navigation) async {
-                //   if (navigation.url == 'https://standard.paystack.co/close') {
-                //     /// Check transaction status before closing the view back to the previous screen.
-                //     await _checkTransactionStatus(snapshot.data!.reference)
-                //         .then((value) {
-                //       return Navigator.of(context).pop();
-                //     });
-                //   }
-                //   return NavigationDecision.navigate;
-                // },
-              );
-            }
-
-            if (snapshot.hasError) {
-              return Material(
-                child: Center(
-                  child: Text('${snapshot.error}'),
-                ),
-              );
-            }
-
-            return const Center(
-              child: CircularProgressIndicator(),
-            );
-          },
-        ),
+        child: _loading
+            ? const Center(child: CircularProgressIndicator())
+            : _errorMessage != null
+            ? Center(child: Text('Error: $_errorMessage'))
+            : WebViewWidget(controller: _webViewController),
       ),
     );
   }
@@ -199,8 +166,11 @@ class PaystackRequestResponse {
   final String authUrl;
   final String reference;
 
-  const PaystackRequestResponse(
-      {required this.authUrl, required this.status, required this.reference});
+  const PaystackRequestResponse({
+    required this.authUrl,
+    required this.status,
+    required this.reference,
+  });
 
   factory PaystackRequestResponse.fromJson(Map<String, dynamic> json) {
     return PaystackRequestResponse(

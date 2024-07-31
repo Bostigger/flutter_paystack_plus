@@ -6,18 +6,19 @@ import 'package:flutter_paystack_plus/src/abstract_class.dart';
 
 @JS()
 external paystackPopUp(
-  String publicKey,
-  String email,
-  String amount,
-  String ref,
-  String plan,
-  void Function() onClosed,
-  void Function() callback,
-);
+    String publicKey,
+    String email,
+    String amount,
+    String ref,
+    String plan,
+    void Function() onClosed,
+    void Function() callback,
+    List<String>? channels,
+    );
 
 class PayForWeb implements MakePlatformSpecificPayment {
   @override
-  makePayment({
+  Future<void> makePayment({
     required String customerEmail,
     required String amount,
     required String reference,
@@ -30,6 +31,7 @@ class PayForWeb implements MakePlatformSpecificPayment {
     BuildContext? context,
     required void Function() onClosed,
     required void Function() onSuccess,
+    List<String>? channels,
   }) async {
     js.context.callMethod(
       paystackPopUp(
@@ -40,6 +42,7 @@ class PayForWeb implements MakePlatformSpecificPayment {
         plan ?? '',
         js.allowInterop(onClosed),
         js.allowInterop(onSuccess),
+        channels,
       ),
       [],
     );
