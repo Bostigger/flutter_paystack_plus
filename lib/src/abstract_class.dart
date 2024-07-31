@@ -22,10 +22,7 @@ abstract class MakePlatformSpecificPayment {
     required void Function() onClosed,
     required void Function() onSuccess,
     List<String>? channels,
-  }) async {
-    // TODO: implement makePayment
-    throw UnimplementedError();
-  }
+  });
 
   factory MakePlatformSpecificPayment() {
     if (kIsWeb) {
